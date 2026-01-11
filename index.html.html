@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edmond Explorer Bingo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .bingo-cell {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border: 3px solid #667eea;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #333;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bingo-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .bingo-cell.marked {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #764ba2;
+        }
+        
+        .bingo-cell.marked::after {
+            content: '✓';
+            position: absolute;
+            font-size: 40px;
+            opacity: 0.3;
+            font-weight: bold;
+        }
+        
+        .bingo-cell.free {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-color: #f5576c;
+            font-weight: bold;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+        
+        .share-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .info strong {
+            color: #667eea;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            display: none;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .toast.show {
+            display: block;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .bingo-cell {
+                font-size: 9px;
+                padding: 3px;
+            }
+            
+            .bingo-grid {
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Edmond Explorer Bingo</h1>
+        <div class="subtitle">Leadership Edmond • January 12, 2026</div>
+        
+        <div class="bingo-grid" id="bingoGrid"></div>
+        
+        <div class="controls">
+            <button class="reset-btn" onclick="resetCard()">🔄 Reset Card</button>
+            <button class="share-btn" onclick="shareProgress()">📤 Share Progress</button>
+        </div>
+        
+        <div class="info">
+            <strong>How to Play:</strong> Tap each square as you visit locations throughout Edmond. Try to get 5 in a row (horizontal, vertical, or diagonal) or complete the entire card! Take photos and share your discoveries on Facebook.
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        const locations = [
+            "Edmond History Museum",
+            "Edmond Fine Arts Institute",
+            "Armstrong Auditorium",
+            "UCO Jazz Lab",
+            "Public Art Mural",
+            "Edmond Mobile Meals",
+            "The Hope Center",
+            "Edmond Senior Center",
+            "Animal Welfare Shelter",
+            "YMCA Mitch Park",
+            "New YMCA (I-35)",
+            "Mitch Park Trails",
+            "FREE SPACE",
+            "Center Court Tennis",
+            "Hafer Park",
+            "Local Coffee Shop",
+            "Downtown Retail",
+            "Farmers Market Site",
+            "UCO Campus",
+            "Edmond Library",
+            "City Hall Area",
+            "Talk to Business Owner",
+            "Visit Nonprofit",
+            "Explore Green Space",
+            "Discover Something New"
+        ];
+        
+        let markedCells = JSON.parse(localStorage.getItem('edmondBingo')) || [];
+        
+        function createBingoCard() {
+            const grid = document.getElementById('bingoGrid');
+            grid.innerHTML = '';
+            
+            locations.forEach((location, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'bingo-cell';
+                cell.textContent = location;
+                cell.onclick = () => toggleCell(index);
+                
+                if (location === "FREE SPACE") {
+                    cell.classList.add('free');
+                    markedCells[index] = true;
+                }
+                
+                if (markedCells[index]) {
+                    cell.classList.add('marked');
+                }
+                
+                grid.appendChild(cell);
+            });
+        }
+        
+        function toggleCell(index) {
+            if (locations[index] === "FREE SPACE") return;
+            
+            markedCells[index] = !markedCells[index];
+            localStorage.setItem('edmondBingo', JSON.stringify(markedCells));
+            createBingoCard();
+            
+            if (markedCells[index]) {
+                showToast('✓ Location visited!');
+            }
+            
+            checkBingo();
+        }
+        
+        function checkBingo() {
+            // Check for 5 in a row
+            const size = 5;
+            let hasBingo = false;
+            
+            // Check rows
+            for (let i = 0; i < size; i++) {
+                if (markedCells.slice(i * size, (i + 1) * size).every(v => v)) {
+                    hasBingo = true;
+                }
+            }
+            
+            // Check columns
+            for (let i = 0; i < size; i++) {
+                if ([0, 1, 2, 3, 4].every(row => markedCells[row * size + i])) {
+                    hasBingo = true;
+                }
+            }
+            
+            // Check diagonals
+            if ([0, 6, 12, 18, 24].every(i => markedCells[i])) hasBingo = true;
+            if ([4, 8, 12, 16, 20].every(i => markedCells[i])) hasBingo = true;
+            
+            if (hasBingo && markedCells.filter(v => v).length >= 5) {
+                setTimeout(() => showToast('🎉 BINGO! Great exploring!'), 300);
+            }
+        }
+        
+        function resetCard() {
+            if (confirm('Reset your bingo card? This will clear all marked locations.')) {
+                markedCells = [];
+                localStorage.removeItem('edmondBingo');
+                createBingoCard();
+                showToast('Card reset! Happy exploring!');
+            }
+        }
+        
+        function shareProgress() {
+            const marked = markedCells.filter(v => v).length;
+            const total = locations.length;
+            const text = `I've explored ${marked} of ${total} locations on my Edmond Explorer Bingo card! 🎯 #LeadershipEdmond #EdmondOK`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Edmond Explorer Bingo',
+                    text: text
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Progress copied to clipboard!');
+                });
+            }
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        createBingoCard();
+    </script>
+</body>
+</html>
